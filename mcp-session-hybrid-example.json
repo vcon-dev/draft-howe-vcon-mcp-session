@@ -1,0 +1,352 @@
+{
+  "uuid": "0195a1b2-c3d4-e5f6-a7b8-c9d0e1f2a3b4",
+  "vcon": "0.0.1",
+  "extensions": ["mcp_session"],
+  "created_at": "2026-03-19T14:30:00Z",
+  "subject": "Data Analysis Session - Q1 Sales Report",
+  "parties": [
+    {
+      "name": "Alice Smith",
+      "mailto": "alice.smith@example.com",
+      "role": "user",
+      "meta": {
+        "party_type": "human",
+        "department": "Sales"
+      }
+    },
+    {
+      "name": "Claude",
+      "role": "assistant",
+      "meta": {
+        "party_type": "ai_agent",
+        "provider": "anthropic",
+        "model": "claude-4-opus",
+        "model_version": "2026-03",
+        "capabilities": ["text", "vision", "tool_use", "code_execution"]
+      }
+    },
+    {
+      "name": "Web Search Service",
+      "role": "tool_provider",
+      "meta": {
+        "party_type": "mcp_server",
+        "protocol_version": "2024-11-05",
+        "capabilities": ["tools"],
+        "tools_provided": ["web_search"]
+      }
+    },
+    {
+      "name": "Code Execution Environment",
+      "role": "tool_provider", 
+      "meta": {
+        "party_type": "mcp_server",
+        "protocol_version": "2024-11-05",
+        "capabilities": ["tools"],
+        "tools_provided": ["execute_python", "create_file"]
+      }
+    }
+  ],
+  "dialog": [
+    {
+      "type": "mcp_session",
+      "start": "2026-03-19T14:30:00Z",
+      "duration": 847,
+      "parties": [0, 1, 2, 3],
+      "originator": 0,
+      "mediatype": "application/vnd.mcp-session+json",
+      "encoding": "json",
+      "session_id": "sess_mcp_2026031914300000_abc123",
+      "application": "claude.ai",
+      "body": {
+        "session_id": "sess_mcp_2026031914300000_abc123",
+        "protocol_version": "2024-11-05",
+        "client": {
+          "name": "Claude.ai",
+          "version": "2026.03.19"
+        },
+        "servers": [
+          {
+            "name": "web_search",
+            "capabilities": ["tools"],
+            "tools": ["web_search"]
+          },
+          {
+            "name": "computer",
+            "capabilities": ["tools"],
+            "tools": ["execute_python", "create_file", "bash_tool"]
+          }
+        ],
+        "context": {
+          "system_prompt_hash": "sha256-a1b2c3d4e5f6...",
+          "temperature": 1.0,
+          "max_tokens": 8192
+        },
+        "messages": [
+          {
+            "id": "msg_001",
+            "role": "user",
+            "timestamp": "2026-03-19T14:30:05Z",
+            "content": [
+              {
+                "type": "text",
+                "text": "I have our Q1 sales data. Can you analyze it and create a visualization showing our top performing regions? Also look up what our competitors reported for Q1."
+              },
+              {
+                "type": "document",
+                "source": {
+                  "type": "base64",
+                  "media_type": "text/csv",
+                  "data": "cmVnaW9uLHNhbGVzLHVuaXRzCk5vcnRoZWFzdCwxMjUwMDAwLDQ1MDAKV2VzdCwxODc1MDAwLDY4MDAKTWlkd2VzdCw5NTAwMDAsNDIwMApTb3V0aCwxNDI1MDAwLDUxMDA="
+                }
+              }
+            ]
+          },
+          {
+            "id": "msg_002",
+            "role": "assistant",
+            "timestamp": "2026-03-19T14:30:15Z",
+            "content": [
+              {
+                "type": "text",
+                "text": "I'll analyze your Q1 sales data and search for competitor information. Let me start with the competitor research."
+              },
+              {
+                "type": "tool_use",
+                "id": "toolu_001",
+                "name": "web_search",
+                "input": {
+                  "query": "Q1 2026 sales reports technology sector competitors"
+                }
+              }
+            ]
+          },
+          {
+            "id": "msg_003",
+            "role": "tool",
+            "timestamp": "2026-03-19T14:30:20Z",
+            "content": [
+              {
+                "type": "tool_result",
+                "tool_use_id": "toolu_001",
+                "is_error": false,
+                "duration_ms": 1523,
+                "content": "Search results: 1. TechCorp Q1 Report shows 12% growth... 2. InnoSoft reports flat Q1 sales... 3. Industry analysis indicates..."
+              }
+            ]
+          },
+          {
+            "id": "msg_004",
+            "role": "assistant",
+            "timestamp": "2026-03-19T14:30:25Z",
+            "content": [
+              {
+                "type": "text",
+                "text": "I found the competitor data. Now let me analyze your sales data and create a visualization."
+              },
+              {
+                "type": "tool_use",
+                "id": "toolu_002",
+                "name": "execute_python",
+                "input": {
+                  "code": "import pandas as pd\nimport matplotlib.pyplot as plt\n\ndata = {'region': ['Northeast', 'West', 'Midwest', 'South'],\n        'sales': [1250000, 1875000, 950000, 1425000],\n        'units': [4500, 6800, 4200, 5100]}\ndf = pd.DataFrame(data)\n\nfig, ax = plt.subplots(figsize=(10, 6))\ncolors = ['#2ecc71', '#3498db', '#e74c3c', '#f39c12']\nax.bar(df['region'], df['sales'], color=colors)\nax.set_xlabel('Region')\nax.set_ylabel('Sales ($)')\nax.set_title('Q1 2026 Sales by Region')\nax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'${x/1e6:.1f}M'))\nplt.tight_layout()\nplt.savefig('q1_sales_chart.png', dpi=150)\nprint(f'Total Sales: ${df[\"sales\"].sum():,}')\nprint(f'Top Region: {df.loc[df[\"sales\"].idxmax(), \"region\"]} (${df[\"sales\"].max():,})')"
+                }
+              }
+            ]
+          },
+          {
+            "id": "msg_005",
+            "role": "tool",
+            "timestamp": "2026-03-19T14:30:45Z",
+            "content": [
+              {
+                "type": "tool_result",
+                "tool_use_id": "toolu_002",
+                "is_error": false,
+                "duration_ms": 3241,
+                "content": "Total Sales: $5,500,000\nTop Region: West ($1,875,000)\n\n[Chart saved to q1_sales_chart.png]"
+              }
+            ]
+          },
+          {
+            "id": "msg_006",
+            "role": "assistant",
+            "timestamp": "2026-03-19T14:30:50Z",
+            "content": [
+              {
+                "type": "text",
+                "text": "Here's my analysis of your Q1 sales data:\n\n**Regional Performance:**\n- West: $1.875M (34% of total) - Top performer\n- South: $1.425M (26%)\n- Northeast: $1.25M (23%)\n- Midwest: $950K (17%)\n\n**Total Q1 Sales: $5.5M**\n\n**Competitor Comparison:**\nBased on my research, TechCorp reported 12% growth in Q1, while InnoSoft had flat sales. Your West region's performance significantly outpaced industry averages.\n\nI've created a bar chart visualization showing the regional breakdown."
+              },
+              {
+                "type": "image",
+                "source": {
+                  "type": "url",
+                  "url": "artifact://q1_sales_chart.png",
+                  "content_hash": "sha512-xyz789..."
+                }
+              }
+            ]
+          },
+          {
+            "id": "msg_007",
+            "role": "user",
+            "timestamp": "2026-03-19T14:31:00Z",
+            "content": [
+              {
+                "type": "text",
+                "text": "Great analysis! Can you save this as a PDF report I can share with the team?"
+              }
+            ]
+          },
+          {
+            "id": "msg_008",
+            "role": "assistant",
+            "timestamp": "2026-03-19T14:31:10Z",
+            "content": [
+              {
+                "type": "tool_use",
+                "id": "toolu_003",
+                "name": "create_file",
+                "input": {
+                  "path": "/outputs/Q1_Sales_Report.pdf",
+                  "content_type": "report",
+                  "sections": ["executive_summary", "regional_analysis", "competitor_comparison", "visualization"]
+                }
+              }
+            ]
+          },
+          {
+            "id": "msg_009",
+            "role": "tool",
+            "timestamp": "2026-03-19T14:31:25Z",
+            "content": [
+              {
+                "type": "tool_result",
+                "tool_use_id": "toolu_003",
+                "is_error": false,
+                "duration_ms": 2156,
+                "content": "PDF report created: Q1_Sales_Report.pdf (245KB)"
+              }
+            ]
+          },
+          {
+            "id": "msg_010",
+            "role": "assistant",
+            "timestamp": "2026-03-19T14:31:30Z",
+            "content": [
+              {
+                "type": "text",
+                "text": "I've created a PDF report with the full analysis. You can download it and share with your team."
+              }
+            ]
+          }
+        ],
+        "artifacts": [
+          {
+            "id": "artifact_001",
+            "type": "image",
+            "title": "Q1 Sales Chart",
+            "filename": "q1_sales_chart.png",
+            "created_at": "2026-03-19T14:30:45Z",
+            "tool_use_id": "toolu_002"
+          },
+          {
+            "id": "artifact_002",
+            "type": "document",
+            "title": "Q1 Sales Report",
+            "filename": "Q1_Sales_Report.pdf",
+            "created_at": "2026-03-19T14:31:25Z",
+            "tool_use_id": "toolu_003"
+          }
+        ]
+      }
+    }
+  ],
+  "analysis": [
+    {
+      "type": "mcp_session_summary",
+      "dialog": [0],
+      "vendor": "example-analytics",
+      "schema": "mcp-summary-v1",
+      "encoding": "json",
+      "body": {
+        "summary": "User requested analysis of Q1 sales data with competitor research and visualization. Assistant used web search for competitor data, Python execution for data analysis and charting, and file creation for PDF report generation.",
+        "user_intent": "sales_analysis",
+        "tools_used": ["web_search", "execute_python", "create_file"],
+        "tool_invocation_count": 3,
+        "artifacts_produced": 2,
+        "message_count": 10,
+        "outcome": "completed_successfully",
+        "duration_seconds": 90
+      }
+    },
+    {
+      "type": "mcp_tool_analysis",
+      "dialog": [0],
+      "vendor": "example-analytics",
+      "schema": "mcp-tools-v1",
+      "encoding": "json",
+      "body": {
+        "tools": [
+          {
+            "name": "web_search",
+            "invocations": 1,
+            "total_duration_ms": 1523,
+            "avg_duration_ms": 1523,
+            "error_count": 0,
+            "success_rate": 1.0
+          },
+          {
+            "name": "execute_python",
+            "invocations": 1,
+            "total_duration_ms": 3241,
+            "avg_duration_ms": 3241,
+            "error_count": 0,
+            "success_rate": 1.0
+          },
+          {
+            "name": "create_file",
+            "invocations": 1,
+            "total_duration_ms": 2156,
+            "avg_duration_ms": 2156,
+            "error_count": 0,
+            "success_rate": 1.0
+          }
+        ],
+        "total_tool_time_ms": 6920,
+        "tool_time_percentage": 7.7
+      }
+    }
+  ],
+  "attachments": [
+    {
+      "type": "mcp_artifact",
+      "start": "2026-03-19T14:30:45Z",
+      "party": 1,
+      "dialog": 0,
+      "mediatype": "image/png",
+      "filename": "q1_sales_chart.png",
+      "url": "https://storage.example.com/artifacts/sess_mcp_2026031914300000_abc123/q1_sales_chart.png",
+      "content_hash": "sha512-xyz789abc123def456..."
+    },
+    {
+      "type": "mcp_artifact",
+      "start": "2026-03-19T14:31:25Z",
+      "party": 1,
+      "dialog": 0,
+      "mediatype": "application/pdf",
+      "filename": "Q1_Sales_Report.pdf",
+      "url": "https://storage.example.com/artifacts/sess_mcp_2026031914300000_abc123/Q1_Sales_Report.pdf",
+      "content_hash": "sha512-def456ghi789jkl012..."
+    },
+    {
+      "type": "mcp_source_data",
+      "start": "2026-03-19T14:30:05Z",
+      "party": 0,
+      "dialog": 0,
+      "mediatype": "text/csv",
+      "filename": "q1_sales_data.csv",
+      "body": "region,sales,units\nNortheast,1250000,4500\nWest,1875000,6800\nMidwest,950000,4200\nSouth,1425000,5100",
+      "encoding": "none"
+    }
+  ]
+}
