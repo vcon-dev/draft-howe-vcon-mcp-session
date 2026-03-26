@@ -176,7 +176,7 @@ This document registers the dialog type "mcp_session" in the Dialog Object Types
 - **Dialog Type Name**: mcp_session
 - **Dialog Type Description**: Model Context Protocol session containing structured human-AI conversation with tool invocations
 - **Change Controller**: IESG
-- **Specification Document**: This document, {{dialog-type-mcp_session}}
+- **Specification Document**: This document, Section "Dialog Type: mcp_session"
 
 ## Dialog Object Structure
 
@@ -591,7 +591,7 @@ This document requests registration of:
 - **Dialog Type Name**: mcp_session
 - **Dialog Type Description**: MCP session dialog
 - **Change Controller**: IESG
-- **Specification Document**: This document, {{dialog-type-mcp_session}}
+- **Specification Document**: This document, Section "Dialog Type: mcp_session"
 
 ## Media Type Registration
 
@@ -602,7 +602,7 @@ This document requests registration of:
 - **Required parameters**: None
 - **Optional parameters**: version
 - **Encoding considerations**: UTF-8
-- **Security considerations**: See {{security-considerations}}
+- **Security considerations**: See Section "Security Considerations"
 - **Interoperability considerations**: JSON format as defined in {{RFC8259}}
 - **Published specification**: This document
 
