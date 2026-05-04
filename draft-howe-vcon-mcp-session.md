@@ -24,6 +24,10 @@ author:
     name: Thomas McCarthy-Howe
     organization: VCONIC
     email: ghostofbasho@gmail.com
+ -
+    name: Pavan Kumar
+    organization: Independent
+    email: pavanputhra@gmail.com
 
 normative:
   RFC2119:
@@ -32,6 +36,8 @@ normative:
   I-D.draft-ietf-vcon-vcon-core:
 
 informative:
+  RFC6920:
+  RFC6838:
   MCP:
     title: "Model Context Protocol Specification"
     author:
@@ -99,6 +105,16 @@ This extension supports the following use cases:
 
 **Session Context**: Configuration and state information that influences AI agent behavior, including system prompts, temperature settings, and available tools.
 
+**Artifact**: A logical content object produced by an AI agent or tool during a session (such as generated code, a document, or structured data). An artifact MAY be conveyed inline within a message content block, or carried as a vCon Attachment when its size or independent lifecycle warrants it. The terms "artifact" and "attachment" are not interchangeable: the former is a logical concept defined here, the latter is a vCon container mechanism defined in {{I-D.draft-ietf-vcon-vcon-core}}.
+
+## Protocol Version Strings
+
+The `protocol_version` field carried in MCP session bodies and `meta.protocol_version` on MCP Server parties is the MCP protocol revision string as defined by the Model Context Protocol specification {{MCP}}. Because MCP is informatively referenced and revises independently of this document, vCon implementations MUST treat unknown `protocol_version` values as opaque, MUST NOT reject a dialog solely on that basis, and MUST preserve the value on round-trip.
+
+## Hash Value Format
+
+Hash values defined by this extension (for example `system_prompt_hash` and `content_hash`) use the form `"<algorithm>:<hex>"`, where `<algorithm>` is a token from the IANA Named Information Hash Algorithm Registry established by {{?RFC6920}} and `<hex>` is the lowercase hexadecimal encoding of the digest. Implementations MUST support `sha256` and MAY support additional registered algorithms. The digest is computed over the UTF-8 encoded byte sequence of the value being hashed (for `system_prompt_hash`, the system prompt text as delivered to the agent).
+
 # MCP Session Overview
 
 ## Design Principles
@@ -138,7 +154,7 @@ The MCP Session extension is a *Compatible Extension* as defined in Section 2.5 
 
 - Introduces new dialog types and analysis formats without altering existing vCon semantics
 - Can be safely ignored by implementations that do not support MCP session processing
-- Does not require listing in the critical parameter
+- MUST NOT be listed in the `critical` parameter; vcon-core requires only Incompatible Extensions to appear there
 - Maintains backward compatibility with existing vCon implementations
 
 ## Extension Registration
@@ -152,12 +168,12 @@ This document defines the "mcp_session" extension token for registration in the 
 
 ## Extension Usage
 
-vCon instances that include MCP session data SHOULD include "mcp_session" in the extensions array:
+vCon instances that include MCP session data SHOULD include "mcp_session" in the extensions array. Note that {{I-D.draft-ietf-vcon-vcon-core}} deprecates the `vcon` schema-version parameter; the `extensions` array is the durable mechanism for negotiating MCP session support.
 
 ~~~json
 {
   "uuid": "01234567-89ab-cdef-0123-456789abcdef",
-  "vcon": "0.0.1",
+  "vcon": "0.4.0",
   "extensions": ["mcp_session"],
   "created_at": "2026-03-19T14:30:00Z",
   "parties": [...],
@@ -223,13 +239,15 @@ An MCP session dialog object contains:
 
 ## AI Agent Party
 
+The Party object schema in {{I-D.draft-ietf-vcon-vcon-core}} does not define a `role` parameter. To remain a Compatible Extension, this document carries MCP-specific role and provider information inside the per-party `meta` object rather than introducing new top-level Party parameters. Implementations that do not understand the MCP Session extension can safely ignore `meta` content per vcon-core.
+
 AI agents participating in MCP sessions SHOULD be represented as party objects with extended metadata:
 
 ~~~json
 {
   "name": "Claude",
-  "role": "assistant",
   "meta": {
+    "role": "assistant",
     "party_type": "ai_agent",
     "provider": "anthropic",
     "model": "claude-4-opus",
@@ -246,8 +264,8 @@ MCP servers providing tools or resources SHOULD be represented as:
 ~~~json
 {
   "name": "Notion MCP Server",
-  "role": "tool_provider",
   "meta": {
+    "role": "mcp_server",
     "party_type": "mcp_server",
     "server_url": "https://mcp.notion.com/sse",
     "protocol_version": "2024-11-05",
@@ -257,14 +275,18 @@ MCP servers providing tools or resources SHOULD be represented as:
 }
 ~~~
 
-## Party Type Values
+The terms **MCP Server** and **mcp_server** are used consistently throughout this document for the party that provides tools or resources via MCP; the term "tool service" is not used.
 
-The meta.party_type field SHOULD be one of:
+## Party Type and Role Values
+
+The `meta.party_type` field SHOULD be one of:
 
 - "human": Natural person (default if not specified)
 - "ai_agent": AI assistant or agent
 - "mcp_server": MCP protocol server
 - "automated_system": Non-AI automated system
+
+The `meta.role` field SHOULD be one of "user", "assistant", "system", "tool", or "mcp_server". These values are scoped to this extension and are not registered as core Party Object Parameters. Implementations encountering an unknown `meta.party_type` or `meta.role` value MUST treat it as opaque, MUST NOT reject the vCon on that basis, and SHOULD preserve the value on round-trip.
 
 # MCP Session Content Schema
 
@@ -318,7 +340,7 @@ The body of an mcp_session dialog MUST contain:
 ~~~json
 {
   "context": {
-    "system_prompt_hash": "sha256-abc123...",
+    "system_prompt_hash": "sha256:abc123...",
     "temperature": 1.0,
     "max_tokens": 8192,
     "tools_available": ["web_search", "code_execution"]
@@ -337,7 +359,7 @@ The body of an mcp_session dialog MUST contain:
       "language": "python",
       "title": "data_analysis.py",
       "created_at": "2026-03-19T14:35:00Z",
-      "content_hash": "sha512-..."
+      "content_hash": "sha512:..."
     }
   ]
 }
@@ -365,6 +387,8 @@ Each message in the messages array MUST contain:
 **content** (array): Array of content blocks
 
 ## Content Block Types
+
+The content block types defined below are the minimum set required by this extension. The MCP specification {{MCP}} may define additional content block types over time, and providers may carry vendor-specific blocks. Receivers MUST ignore unknown `content[].type` values without rejecting the dialog and MUST preserve them on round-trip.
 
 ### Text Content
 
@@ -421,7 +445,7 @@ Or with external reference:
   "source": {
     "type": "url",
     "url": "https://...",
-    "content_hash": "sha512-..."
+    "content_hash": "sha512:..."
   }
 }
 ~~~
@@ -474,11 +498,13 @@ Analysis of tool invocation patterns:
 }
 ~~~
 
+The schema identifiers `mcp-summary-v1` and `mcp-tools-v1` shown in the examples above are illustrative. Production deployments SHOULD set `schema` to a registered schema URI or a `vendor`-scoped name following the analysis schema guidance in {{I-D.draft-ietf-vcon-vcon-core}}, so that downstream consumers can validate analysis bodies against a stable contract.
+
 # Attachment Types for Tool Outputs
 
 ## Tool Output Attachments
 
-Large tool outputs or produced artifacts SHOULD be stored as attachments:
+Tool outputs whose serialized JSON exceeds 16 KiB, and produced artifacts of any size, SHOULD be stored as vCon Attachments rather than inline in the dialog body. Storing large content as attachments keeps the dialog body indexable, avoids inflating the signed dialog scope, and lets attachments be revoked or redacted independently of the session transcript.
 
 ~~~json
 {
@@ -489,7 +515,7 @@ Large tool outputs or produced artifacts SHOULD be stored as attachments:
   "mediatype": "application/pdf",
   "filename": "generated_report.pdf",
   "url": "https://storage.example.com/artifacts/report.pdf",
-  "content_hash": "sha512-..."
+  "content_hash": "sha512:..."
 }
 ~~~
 
@@ -512,6 +538,10 @@ The attachment MAY include additional metadata in a meta object:
   }
 }
 ~~~
+
+## Linking Attachments to Tool Invocations
+
+When an attachment with `type: "mcp_artifact"` carries a `meta.tool_use_id`, that value MUST equal the `id` of a `tool_use` content block within an `mcp_session` dialog of the same vCon, and the attachment SHOULD set its `dialog` parameter to the index of that dialog. This linkage allows consumers to reconstruct the full provenance of an artifact (which message produced it, in which session, in response to which user input) without parsing the dialog body. Attachments without a `tool_use_id` represent artifacts not directly produced by a single tool invocation (for example, a final assistant-authored document) and SHOULD still set the `dialog` parameter when associated with a specific session.
 
 # Security Considerations
 
@@ -549,29 +579,47 @@ Session records SHOULD include sufficient context to prevent misuse:
 
 # Privacy Considerations
 
+MCP sessions are unusually privacy-sensitive among vCon dialog types because they capture not only what a human said, but what an AI agent inferred, retrieved, and acted upon on that human's behalf. A single record can therefore contain (a) personal data the user typed, (b) personal data about third parties that surfaced in tool results, (c) inferred attributes the user never disclosed, and (d) operational metadata such as system prompts and tool catalogs that can re-identify users by behavioral fingerprint even after direct identifiers are removed. This section gives normative guidance for handling each of these.
+
+## Lawful Basis and Consent
+
+MCP session capture SHOULD be governed by the same lawful-basis machinery vCon uses for other dialogs (see {{I-D.draft-howe-vcon-lawful-basis}}). Implementations MUST NOT rely on a single blanket consent for both the human-facing conversation and downstream tool invocations when those invocations transmit personal data to third-party MCP servers; each tool invocation that crosses an organizational or jurisdictional boundary SHOULD be supported by a documented basis. Where consent is the basis, revocation MUST propagate to derived analyses and artifacts, not only to the raw `mcp_session` dialog.
+
+## Data Minimization
+
+Implementations SHOULD capture the minimum MCP context required for the stated purpose. In particular:
+
+- Tool result bodies SHOULD be omitted or truncated when the purpose of capture (for example, compliance attestation) does not require their content; the `tool_use_id` and a `content_hash` are usually sufficient for audit.
+- `context.tools_available` SHOULD list tool names rather than full tool schemas when the schemas would expose sensitive endpoints, prompts, or business logic.
+- System prompts SHOULD be referenced by `system_prompt_hash` rather than stored verbatim when the prompt itself is confidential. The hash preserves audit value without persisting prompt text.
+
 ## Data Subject Rights
 
-MCP sessions may contain personal data subject to privacy regulations:
+The vCon `parties` array enables data subject access, rectification, and erasure requests to be answered. For MCP sessions specifically:
 
-- Party identification enables data subject access requests
-- Dialog content can be selectively redacted
-- Tool outputs may need separate privacy assessment
+- Erasure of a human party MUST cascade to messages authored by that party, to tool invocations whose inputs were derived from that party's content, and to artifacts produced from those invocations.
+- Rectification requests against tool outputs SHOULD be served by attaching a corrective analysis rather than mutating the original `mcp_session` dialog body, preserving evidentiary integrity.
+- When erasure would compromise the integrity of a signed vCon, implementations SHOULD use the redaction mechanism described in {{I-D.draft-ietf-vcon-vcon-core}} rather than in-place modification.
+
+## Third-Party Personal Data in Tool Results
+
+Tool results frequently contain personal data about people who are not parties to the conversation (search results, CRM lookups, public records). Implementations:
+
+- SHOULD treat such third parties as data subjects whose rights apply even though they are not represented in `parties`.
+- SHOULD record the tool source and timestamp so that downstream deletion requests against the underlying source can be honored.
+- MUST NOT use third-party data extracted from tool results as training data without an independent lawful basis.
 
 ## AI Agent Transparency
 
-Users interacting with AI agents have a right to know:
+Where required by applicable law, the vCon SHOULD record evidence that the human party was informed they were interacting with an AI system, the categories of tools available to the agent, and the retention policy for the captured session. A `lawful_basis` attachment is the recommended carrier for this evidence.
 
-- That they are interacting with an AI system
-- What tools the AI has access to
-- How their conversation data is stored
+## Re-identification and Behavioral Fingerprinting
 
-## Consent Management
+Even with direct identifiers removed, MCP sessions are highly re-identifying: sequences of tool invocations, prompt phrasing, and timing form a behavioral fingerprint. Implementations that publish or share `mcp_session` data SHOULD assume re-identification risk is non-trivial and apply k-anonymity or differential-privacy techniques rather than relying on field-level redaction alone.
 
-MCP session capture SHOULD integrate with vCon consent management:
+## Cross-Border Transfers
 
-- Lawful basis attachments apply to MCP sessions
-- Consent can be revoked, requiring coordinated deletion
-- Session records support right to be forgotten requests
+Tool invocations route data to MCP servers that may be operated in jurisdictions different from the human party's. Implementations SHOULD record, per tool invocation, sufficient information (for example, server identity in `meta.provider` and a region or jurisdiction hint) to support transfer-impact assessments after the fact.
 
 # IANA Considerations
 
@@ -595,16 +643,33 @@ This document requests registration of:
 
 ## Media Type Registration
 
-This document requests registration of:
+This document requests registration of the following media type per {{?RFC6838}}:
 
 - **Type name**: application
 - **Subtype name**: vnd.mcp-session+json
 - **Required parameters**: None
-- **Optional parameters**: version
-- **Encoding considerations**: UTF-8
-- **Security considerations**: See Section "Security Considerations"
-- **Interoperability considerations**: JSON format as defined in {{RFC8259}}
+- **Optional parameters**: version (the MCP protocol revision string carried in the body's `protocol_version` field)
+- **Encoding considerations**: binary; UTF-8 encoded JSON as defined in {{RFC8259}}
+- **Security considerations**: See Section "Security Considerations" of this document.
+- **Interoperability considerations**: JSON format as defined in {{RFC8259}}; receivers MUST ignore unknown content block types and unknown `meta` fields.
 - **Published specification**: This document
+- **Applications that use this media type**: vCon implementations capturing or processing MCP session content; AI agent platforms; conversational analytics, compliance, and audit tooling.
+- **Fragment identifier considerations**: None defined.
+- **Restrictions on usage**: None.
+- **Provisional registration**: No.
+- **Additional information**:
+    - Deprecated alias names for this type: None
+    - Magic number(s): None
+    - File extension(s): .mcpsession.json
+    - Macintosh file type code(s): None
+- **Person & email address to contact for further information**: vCon working group <vcon@ietf.org>
+- **Intended usage**: COMMON
+- **Author/Change controller**: IETF
+- **Author**: The authors of this document.
+
+## Party Object Meta Field Guidance
+
+This extension does not register new Party Object Parameter Names. The fields `meta.role`, `meta.party_type`, `meta.provider`, `meta.model`, `meta.model_version`, `meta.capabilities`, `meta.server_url`, `meta.protocol_version`, and `meta.tools_provided` are extension-defined and apply only when the vCon's `extensions` array includes `"mcp_session"`. Implementations that do not understand the MCP Session extension MUST ignore these fields per the meta-handling rules in {{I-D.draft-ietf-vcon-vcon-core}}.
 
 # Examples
 
@@ -613,19 +678,21 @@ This document requests registration of:
 ~~~json
 {
   "uuid": "0195a1b2-c3d4-e5f6-a7b8-c9d0e1f2a3b4",
-  "vcon": "0.0.1",
+  "vcon": "0.4.0",
   "extensions": ["mcp_session"],
   "created_at": "2026-03-19T14:30:00Z",
   "parties": [
     {
       "name": "Alice Smith",
       "tel": "+1-555-0100",
-      "role": "user"
+      "meta": {
+        "role": "user"
+      }
     },
     {
       "name": "Claude",
-      "role": "assistant",
       "meta": {
+        "role": "assistant",
         "party_type": "ai_agent",
         "provider": "anthropic",
         "model": "claude-4-opus"
@@ -633,8 +700,8 @@ This document requests registration of:
     },
     {
       "name": "Web Search",
-      "role": "tool_provider",
       "meta": {
+        "role": "mcp_server",
         "party_type": "mcp_server",
         "tools_provided": ["web_search"]
       }
@@ -733,4 +800,4 @@ This document requests registration of:
 
 # Acknowledgements
 
-The authors would like to thank the vCon working group for their input on this specification.
+The authors thank Pavan Kumar for review and contributions, and the vCon working group for early input on this specification. Additional reviewers will be acknowledged in subsequent revisions.
