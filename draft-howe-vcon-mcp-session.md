@@ -26,7 +26,7 @@ author:
     email: ghostofbasho@gmail.com
  -
     name: Pavan Kumar
-    organization: Independent
+    organization: VCONIC
     email: pavanputhra@gmail.com
 
 normative:
