@@ -2,7 +2,7 @@
 title: "vCon Extension for Model Context Protocol Sessions"
 abbrev: "vCon MCP Session"
 category: std
-docname: draft-howe-vcon-mcp-session-latest
+docname: draft-howe-vcon-mcp-session-00
 ipr: trust200902
 area: "Applications and Real-Time"
 workgroup: "vCon"
@@ -26,7 +26,7 @@ author:
     email: ghostofbasho@gmail.com
  -
     name: Pavan Kumar
-    organization: VCONIC
+    organization: Independent
     email: pavanputhra@gmail.com
 
 normative:
@@ -44,8 +44,6 @@ informative:
       - org: Anthropic
     target: https://modelcontextprotocol.io/
     date: 2024
-  I-D.draft-rosenberg-ai-protocols:
-  I-D.draft-howe-vcon-lifecycle:
   I-D.draft-howe-vcon-lawful-basis:
 
 --- abstract

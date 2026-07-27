@@ -6,3 +6,4 @@ lib/
 *.html
 *.txt
 !README.txt
+*.err
