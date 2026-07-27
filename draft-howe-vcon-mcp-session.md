@@ -2,7 +2,7 @@
 title: "vCon Extension for Model Context Protocol Sessions"
 abbrev: "vCon MCP Session"
 category: std
-docname: draft-howe-vcon-mcp-session-01
+docname: draft-howe-vcon-mcp-session-00
 ipr: trust200902
 area: "Applications and Real-Time"
 workgroup: "vCon"
